@@ -1,4 +1,5 @@
 processed_dataset_1/negative/
 processed_dataset_1/positive/
+checkpoints/*/model/
 raw_dataset/
 .vscode/
