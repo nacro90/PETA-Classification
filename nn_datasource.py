@@ -36,21 +36,22 @@ def get_training_length():
     return len(json.load(open(DATASET_FOLDER + TRAINING_JSON)))
 
 
-def test_data():
+def test_batch_generator(batch_size):
     test_data = json.load(open(DATASET_FOLDER + TEST_JSON))
 
     image_list = []
     labels = []
 
-    for training_row in test_data:
-        im = Image.open(DATASET_FOLDER + training_row['image'])
-        width, height = im.size
-        image_np = np.array(im.getdata()).reshape(width, height, 3)
-        image_list.append(image_np)
+    for batch_index in range(len(test_data) // batch_size):
+        for test_row in test_data[batch_index * batch_size: (batch_index + 1) * batch_size]:
+            im = Image.open(DATASET_FOLDER + test_row['image'])
+            width, height = im.size
+            image_np = np.array(im.getdata()).reshape(width, height, 3)
+            image_list.append(image_np)
 
-        labels.append([training_row['label']])
+            labels.append([test_row['label']])
 
-    return np.array(image_list), np.array(labels)
+        yield np.array(image_list), np.array(labels)
 
 
 def main():

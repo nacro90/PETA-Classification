@@ -7,8 +7,16 @@ DEFAULT_EXPORT_DIR = "checkpoints/"
 
 
 class CheckpointManager:
-    def __init__(self, number, dataset, n_epochs, batch_size, learning_rate, optimizer, dropout):
+    def __init__(self, number):
         self.number = number
+        self.checkpoint_path = DEFAULT_EXPORT_DIR + str(number) + '/'
+        self.model_path = self.checkpoint_path + 'model/'
+        self.status = 'READY'
+
+    def on_training_start(self, dataset, n_epochs, batch_size, learning_rate, optimizer, dropout):
+        self.status = 'RUNNING'
+        self.started_at = time.asctime()
+
         self.dataset = dataset
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -16,20 +24,13 @@ class CheckpointManager:
         self.optimizer = optimizer
         self.dropout = dropout
 
-        self.status = 'READY'
-        self.started_at = None
+        self.started_at = time.asctime()
         self.finished_at = None
         self.score = None
 
         self.training_batch_losses = []
         self.training_batch_accuracies = []
 
-        self.checkpoint_path = DEFAULT_EXPORT_DIR + str(self.number) + '/'
-        self.model_path = self.checkpoint_path + 'model/'
-
-    def on_start(self):
-        self.status = 'RUNNING'
-        self.started_at = time.asctime()
         self._write_current_status()
 
     def on_epoch_completed(self):
@@ -46,17 +47,22 @@ class CheckpointManager:
         self._write_current_status()
 
 
-    def on_completed(self, score):
+    def on_training_completed(self, score):
         self.status = 'FINISHED'
         self.finished_at = time.asctime()
-        self.score = "{:6.1%}".format(score)
+        self.score = "{:3.1%}".format(score)
         self._write_current_status()
 
-    def save_model(self, session, step=1):
+    def save_model(self, session, step=0):
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
         saver = tf.train.Saver()
-        saver.save(session, self.model_path, step)
+        saver.save(session, self.model_path + 'model.ckpt', step)
+
+    def restore_model(self, session):
+        saver = tf.train.Saver()
+        meta = tf.train.import_meta_graph(self.model_path + "model.ckpt-0.meta")
+        meta.restore(session, tf.train.latest_checkpoint(self.model_path))
 
     def _write_current_status(self):
         if not os.path.exists(DEFAULT_EXPORT_DIR):
